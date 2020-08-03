@@ -68,7 +68,7 @@ function colorIl() {
   buildGraph();
   coalesceNodes();
   const coloring = colorGraph(graph, registersInIl());
-  if (coloring === 'omega') {
+  if (coloring === undefined) {
     return coloring;
   }
   rewriteIl(coloring);
@@ -78,8 +78,8 @@ function colorIl() {
 /**
  * Build the register interference graph
  */
-function buildGraph() {
-  graph = new Set();
+function buildGraph(il) {
+  const graph = new Set();
   const liveness = new Map();
 
   for (const {opcode, def, use} of il) {
@@ -95,7 +95,7 @@ function buildGraph() {
       use.filter(({dead}) => dead).map(({reg}) => {
         liveness.set(reg, liveness.get(reg) - 1);
         if (liveness.get(reg) === 0) {
-          liveness.set(reg, 'omega');
+          liveness.delete(reg);
         }
       });
       def.map(({reg, dead}) => {
@@ -114,6 +114,8 @@ function buildGraph() {
       });
     }
   }
+
+  return graph;
 }
 
 /**
@@ -129,7 +131,7 @@ function coalesceNodes() {
  * @param {} n - nodes
  */
 function colorGraph(g, n) {
-  return 'omega';
+  return undefined;
 }
 
 /**
@@ -175,3 +177,5 @@ function registersInIl() {
 function neighbors(x, g) {
 
 }
+
+module.exports = {Instruction, Def, Use, buildGraph};
