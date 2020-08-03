@@ -81,4 +81,94 @@
 
     });
 
+    // il is an ordered sequence of instructions
+    let il;
+
+    // register interference graph = set of edges
+    // each edge being specified by the set of its endpoints
+    let graph;
+
+    // set of available colors (machine registers)
+    let colors;
+
+    // gives estimated cost of spilling each symbolic register
+    let cost;
+
+    // set of spilled symbolic registers
+    let spilled;
+
+    /**
+     * Build graph, coalesce, and color
+     */
+    function colorIl() {
+
+    }
+
+    /**
+     * Build the register interference graph
+     */
+    function buildGraph() {
+
+    }
+
+    /**
+     * Coalesce away copy operations
+     */
+    function coalesceNodes() {
+
+    }
+
+    /**
+     * Color the graph with edges g and nodes n
+     * @param g edges
+     * @param n nodes
+     */
+    function colorGraph(g, n) {
+
+    }
+
+    /**
+     * Estimate cost of spilling each register
+     */
+    function estimateSpillCosts() {
+
+    }
+
+    /**
+     * Make spill decisions
+     */
+    function decideSpills() {
+
+    }
+
+    /**
+     * Insert spill and reload instructions
+     */
+    function insertSpillCode() {
+
+    }
+
+    /**
+     * Apply function f to each register in il
+     * @param f function
+     */
+    function rewriteIl(f) {
+
+    }
+
+    /**
+     * Returns set of symbolic registers in il
+     */
+    function registersInIl() {
+
+    }
+
+    /**
+     * @param x node
+     * @param g set of edges
+     */
+    function neighbors(x, g) {
+
+    }
+
 </script>
