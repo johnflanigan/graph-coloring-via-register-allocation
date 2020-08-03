@@ -10,12 +10,12 @@
 <script>
 
     // set the dimensions and margins of the graph
-    var margin = {top: 10, right: 30, bottom: 30, left: 40},
+    const margin = {top: 10, right: 30, bottom: 30, left: 40},
         width = 400 - margin.left - margin.right,
         height = 400 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
-    var svg = d3.select("#my_dataviz")
+    const svg = d3.select("#my_dataviz")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
@@ -23,27 +23,27 @@
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
 
-    d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_network.json", function (data) {
+    d3.json("data_network.json", function (data) {
 
         // Initialize the links
-        var link = svg
+        const link = svg
             .selectAll("line")
             .data(data.links)
             .enter()
             .append("line")
-            .style("stroke", "#aaa")
+            .style("stroke", "#aaa");
 
         // Initialize the nodes
-        var node = svg
+        const node = svg
             .selectAll("circle")
             .data(data.nodes)
             .enter()
             .append("circle")
             .attr("r", 20)
-            .style("fill", "#69b3a2")
+            .style("fill", "#69b3a2");
 
         // Let's list the force we wanna apply on the network
-        var simulation = d3.forceSimulation(data.nodes)                 // Force algorithm is applied to data.nodes
+        const simulation = d3.forceSimulation(data.nodes)                 // Force algorithm is applied to data.nodes
             .force("link", d3.forceLink()                               // This force provides links between nodes
                 .id(function (d) {
                     return d.id;
