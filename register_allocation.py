@@ -1,4 +1,5 @@
-from typing import List, Callable
+from random import choice
+from typing import List
 
 
 class Dec:
@@ -29,7 +30,7 @@ il: List[Instruction] = None
 graph = set()
 
 # set of available colors (machine registers)
-colors = None
+colors = ['red', 'blue']
 
 # gives estimated cost of spilling each symbolic register
 cost = None
@@ -67,7 +68,9 @@ def build_graph():
             for dec in instruction.dec:
                 for key, value in liveness.items():
                     if key != dec.reg:
+                        # TODO should graph have edges in both directions?
                         graph.add((dec.reg, key))
+                        # graph.add((key, dec.reg))
                 if not dec.dead:
                     if dec.reg in liveness:
                         liveness[dec.reg] += 1
@@ -99,20 +102,36 @@ def coalesce_nodes():
             source = found.dec[0].reg
             target = found.use[0].reg
 
-            def f(x):
-                if x == source:
-                    return target
-                else:
-                    return x
+            f = {source: target}
+            # def f(x):
+            #     if x == source:
+            #         return target
+            #     else:
+            #         return x
 
-            graph = set([(f(source), target) for source, target in graph])
+            graph = set([(f.get(source, source), target) for source, target in graph])
             rewrite_il(f)
         else:
             modified = False
 
 
 def color_graph(g, n):
-    pass
+    if len(n) == 0:
+        return {}
+
+    node = next((node for node in n if len(neighbors(node, g)) < len(colors)), None)
+    if node is None:
+        return None
+
+    coloring = color_graph([(source, target) for (source, target) in g if source != node and target != node],
+                           [n for n in n if n != node])
+    if coloring is None:
+        return None
+
+    neighbor_colors = [coloring[neighbor] for neighbor in neighbors(node, g)]
+    coloring[node] = choice([color for color in colors if color not in neighbor_colors])
+
+    return coloring
 
 
 def estimate_spill_costs():
@@ -127,18 +146,26 @@ def insert_spill_code():
     pass
 
 
-def rewrite_il(f: Callable[[str], str]):
+def rewrite_il(f: dict):
     global il
     il = [Instruction(
         instruction.opcode,
-        [Dec(f(dec.reg), dec.dead) for dec in instruction.dec],
-        [Use(f(use.reg), use.dead) for use in instruction.use]
+        [Dec(f.get(dec.reg, dec.reg), dec.dead) for dec in instruction.dec],
+        [Use(f.get(use.reg, use.reg), use.dead) for use in instruction.use]
     ) for instruction in il]
 
 
 def registers_in_il():
-    pass
+    reg = set()
+
+    for instruction in il:
+        for dec in instruction.dec:
+            reg.add(dec.reg)
+        for use in instruction.use:
+            reg.add(use.reg)
+
+    return reg
 
 
 def neighbors(x, g):
-    pass
+    return [target for (source, target) in g if x == source]
