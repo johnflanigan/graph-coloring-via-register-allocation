@@ -45,7 +45,20 @@ class Use {
   }
 }
 
+/**
+ * Graph
+ */
+class Graph {
+  /**
+   * @constructor
+   */
+  constructor() {
+    this.edges = [];
+  }
+}
+
 // il is an ordered sequence of instructions
+// il stands for intermediate or internal language
 let il;
 
 // register interference graph = set of edges
@@ -64,9 +77,9 @@ let spilled;
 /**
  * Build graph, coalesce, and color
  */
-function colorIl() {
-  buildGraph();
-  coalesceNodes();
+function colorIl(il) {
+  const graph = buildGraph(il);
+  const {coalescedIl, coalescedGraph} = coalesceNodes(il, graph);
   const coloring = colorGraph(graph, registersInIl());
   if (coloring === undefined) {
     return coloring;
@@ -79,6 +92,7 @@ function colorIl() {
  * Build the register interference graph
  */
 function buildGraph(il) {
+  // TODO Javascript set has duplicates, is performing address comparison
   const graph = new Set();
   const liveness = new Map();
 
@@ -121,8 +135,45 @@ function buildGraph(il) {
 /**
  * Coalesce away copy operations
  */
-function coalesceNodes() {
+function coalesceNodes(il, graph) {
+  const check = ({opcode, def, use}) => {
+    if (def.length === 0 || use.length === 0) {
+      return false;
+    }
 
+    const source = def[0].reg;
+    const target = use[0].reg;
+
+    return opcode === 'copy' &&
+        source !== target &&
+        !graph.has({'source': source, 'target': target});
+  };
+
+  let modified = true;
+  while (modified) {
+    const found = il.find(check);
+
+    if (found !== undefined) {
+      const source = found.def[0].reg;
+      const target = found.use[0].reg;
+
+      const f = (x) => {
+        if (x === source) {
+          return target;
+        } else {
+          return x;
+        }
+      };
+
+      graph = [...graph].map(
+          ({source, target}) => ({'source': f(source), 'target': target}));
+      il = rewriteIl(f, il);
+    } else {
+      modified = false;
+    }
+  }
+
+  return {il, graph};
 }
 
 /**
@@ -157,10 +208,16 @@ function insertSpillCode() {
 
 /**
  * Apply function f to each register in il
- * @param f function
+ * @param {Function} f - function
+ * @param {Instruction[]} il - intermediate language
+ * @return {Instruction[]} rewritten intermediate language after applying f
  */
-function rewriteIl(f) {
-
+function rewriteIl(f, il) {
+  return il.map(({opcode, def, use}) => (
+      new Instruction(opcode,
+          def.map(({reg, dead}) => new Def(f(reg), dead)),
+          use.map(({reg, dead}) => new Use(f(reg), dead)))
+  ));
 }
 
 /**
@@ -178,4 +235,4 @@ function neighbors(x, g) {
 
 }
 
-module.exports = {Instruction, Def, Use, buildGraph};
+module.exports = {Instruction, Def, Use, buildGraph, coalesceNodes};

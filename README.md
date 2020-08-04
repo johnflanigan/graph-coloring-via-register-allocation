@@ -9,3 +9,5 @@
   * Because my Javascript is not very good
 * https://jestjs.io/
   * Testing framework
+* https://www.sciencedirect.com/science/article/pii/0898122175900115
+  * SETL documentation
