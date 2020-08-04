@@ -30,13 +30,28 @@ il: List[Instruction] = None
 graph = set()
 
 # set of available colors (machine registers)
-colors = ['red', 'blue']
+colors = ['red', 'blue', 'yellow', 'green']
 
 # gives estimated cost of spilling each symbolic register
 cost = None
 
 # set of spilled symbolic registers
 spilled = None
+
+
+def run(input_il, input_colors):
+    # TODO restructure so global is not necessary
+    global il
+    global colors
+
+    il = input_il
+    colors = input_colors
+
+    if color_il() is None:
+        estimate_spill_costs()
+        decide_spills()
+        insert_spill_code()
+        color_il()
 
 
 def color_il():
@@ -50,15 +65,14 @@ def color_il():
 
 
 def build_graph():
-    liveness = {}
+    liveness = None
 
     for instruction in il:
         if instruction.opcode == 'bb':
+            liveness = {}
+
             for dec in [dec for dec in instruction.dec if not dec.dead]:
-                if dec.reg in liveness:
-                    liveness[dec.reg] += 1
-                else:
-                    liveness[dec.reg] = 1
+                liveness[dec.reg] = liveness.get(dec.reg, 0) + 1
 
         else:
             for use in [use for use in instruction.use if use.dead]:
@@ -70,12 +84,9 @@ def build_graph():
                     if key != dec.reg:
                         # TODO should graph have edges in both directions?
                         graph.add((dec.reg, key))
-                        # graph.add((key, dec.reg))
+                        graph.add((key, dec.reg))
                 if not dec.dead:
-                    if dec.reg in liveness:
-                        liveness[dec.reg] += 1
-                    else:
-                        liveness[dec.reg] = 1
+                    liveness[dec.reg] = liveness.get(dec.reg, 0) + 1
 
 
 # TODO can I come up with a better name for this function
@@ -103,11 +114,6 @@ def coalesce_nodes():
             target = found.use[0].reg
 
             f = {source: target}
-            # def f(x):
-            #     if x == source:
-            #         return target
-            #     else:
-            #         return x
 
             graph = set([(f.get(source, source), target) for source, target in graph])
             rewrite_il(f)
@@ -135,7 +141,29 @@ def color_graph(g, n):
 
 
 def estimate_spill_costs():
-    pass
+    global cost
+    cost = {}
+
+    frequency = None
+
+    for instruction in il:
+        if instruction.opcode == 'bb':
+            frequency = instruction.use[0].reg
+        else:
+            # TODO this can probably be refactored into class method
+            combined = set()
+
+            for dec in instruction.dec:
+                combined.add(dec.reg)
+            for use in instruction.use:
+                combined.add(use.reg)
+
+            for reg in combined:
+                # TODO confused about frequency
+                # paper says 'bb' has as use the estimated execution frequency of the basic block
+                # floating point number
+                # cost[reg] = cost.get(reg, 0) + frequency
+                cost[reg] = cost.get(reg, 0) + 1
 
 
 def decide_spills():
