@@ -283,7 +283,7 @@ def test_color_il_with_spills():
 
 
 def test_color_il_with_spills_and_frequency():
-    register_allocation.colors = ['red', 'blue', 'yellow']
+    register_allocation.colors = ['lightcoral', 'lightblue', 'lightgreen']
 
     # http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
     register_allocation.il = [

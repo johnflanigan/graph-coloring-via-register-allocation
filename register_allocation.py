@@ -68,17 +68,19 @@ class Graph:
     def neighbors(self, x):
         return self._adjacency_list.get(x, [])
 
-    def plot(self):
+    def plot(self, coloring):
         G = nx.Graph()
 
         # Sorting to get repeatable graphs
-        G.add_nodes_from(sorted(self._adjacency_list.keys()))
+        nodes = sorted(self._adjacency_list.keys())
+        ordered_coloring = [coloring.get(node, 'grey') for node in nodes]
+        G.add_nodes_from(nodes)
 
         for key in self._adjacency_list.keys():
             for value in self._adjacency_list[key]:
                 G.add_edge(key, value)
 
-        nx.draw(G, pos=nx.circular_layout(G), node_color='red', with_labels=True, font_weight='bold')
+        nx.draw(G, pos=nx.circular_layout(G), node_color=ordered_coloring, with_labels=True, font_weight='bold')
         plt.show()
 
 
@@ -125,11 +127,12 @@ def run():
 
 def color_il():
     build_graph()
-    graph.plot()
     coalesce_nodes()
     coloring = color_graph(graph, registers_in_il())
     if coloring is None:
+        graph.plot({})
         return None
+    graph.plot(coloring)
     rewrite_il(coloring)
     return coloring
 
@@ -186,7 +189,6 @@ def coalesce_nodes():
             f = {source: target}
 
             graph.rename_node(source, target)
-            # graph = set([(f.get(source, source), target) for source, target in graph])
             rewrite_il(f)
         else:
             modified = False
