@@ -2,6 +2,9 @@ import copy
 from random import choice
 from typing import List
 
+import matplotlib.pyplot as plt
+import networkx as nx
+
 
 class Dec:
     def __init__(self, reg: str, dead: bool):
@@ -65,6 +68,19 @@ class Graph:
     def neighbors(self, x):
         return self._adjacency_list.get(x, [])
 
+    def plot(self):
+        G = nx.Graph()
+
+        # Sorting to get repeatable graphs
+        G.add_nodes_from(sorted(self._adjacency_list.keys()))
+
+        for key in self._adjacency_list.keys():
+            for value in self._adjacency_list[key]:
+                G.add_edge(key, value)
+
+        nx.draw(G, pos=nx.circular_layout(G), node_color='red', with_labels=True, font_weight='bold')
+        plt.show()
+
 
 # il is an ordered sequence of instructions
 # il stands for intermediate or internal language
@@ -109,6 +125,7 @@ def run():
 
 def color_il():
     build_graph()
+    graph.plot()
     coalesce_nodes()
     coloring = color_graph(graph, registers_in_il())
     if coloring is None:

@@ -1,2 +1,4 @@
+matplotlib
+networkx
 pylint
 pytest
