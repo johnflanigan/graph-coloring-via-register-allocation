@@ -214,3 +214,144 @@ def test_color_il_with_multiple_bb():
     coloring = register_allocation.color_il()
 
     assert coloring is not None
+
+
+def test_color_il_with_spills():
+    register_allocation.colors = ['red', 'blue', 'yellow']
+
+    # http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
+    register_allocation.il = [
+        Instruction(
+            'bb',
+            [Dec('b', False), Dec('c', False), Dec('f', False)],
+            []),
+        Instruction(
+            'a := b + c',
+            [Dec('a', False)],
+            [Use('b', True), Use('c', False)]
+        ),
+        Instruction(
+            'd := a',
+            [Dec('d', False)],
+            [Use('a', True)]
+        ),
+        Instruction(
+            'e := d + f',
+            [Dec('e', False)],
+            [Use('d', False), Use('f', False)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('e', False)],
+            []),
+        Instruction(
+            'f := 2 + e',
+            [Dec('f', False)],
+            [Use('e', True)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('d', False), Dec('e', False), Dec('f', False)],
+            []),
+        Instruction(
+            'b := d + e',
+            [Dec('b', False)],
+            [Use('d', True), Use('e', False)]
+        ),
+        Instruction(
+            'e := e - 1',
+            [Dec('e', False)],
+            [Use('e', False)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('f', False)],
+            []),
+        Instruction(
+            'b := f + c',
+            [Dec('b', True)],
+            [Use('c', False), Use('f', False)]
+        ),
+    ]
+
+    coloring = register_allocation.run()
+
+    assert coloring is not None
+
+
+def test_color_il_with_spills_and_frequency():
+    register_allocation.colors = ['red', 'blue', 'yellow']
+
+    # http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
+    register_allocation.il = [
+        Instruction(
+            'bb',
+            [Dec('b', False), Dec('c', False), Dec('f', False)],
+            [],
+            frequency=1
+        ),
+        Instruction(
+            'a := b + c',
+            [Dec('a', False)],
+            [Use('b', True), Use('c', False)]
+        ),
+        Instruction(
+            'd := a',
+            [Dec('d', False)],
+            [Use('a', True)]
+        ),
+        Instruction(
+            'e := d + f',
+            [Dec('e', False)],
+            [Use('d', False), Use('f', False)]
+        ),
+
+        # Using negative frequency to force f to be spilled
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('e', False)],
+            [],
+            frequency=-0.1
+        ),
+        Instruction(
+            'f := 2 + e',
+            [Dec('f', False)],
+            [Use('e', True)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('d', False), Dec('e', False), Dec('f', False)],
+            [],
+            frequency=1
+        ),
+        Instruction(
+            'b := d + e',
+            [Dec('b', False)],
+            [Use('d', True), Use('e', False)]
+        ),
+        Instruction(
+            'e := e - 1',
+            [Dec('e', False)],
+            [Use('e', False)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('f', False)],
+            [],
+            frequency=1
+        ),
+        Instruction(
+            'b := f + c',
+            [Dec('b', True)],
+            [Use('c', False), Use('f', False)]
+        ),
+    ]
+
+    coloring = register_allocation.run()
+
+    assert coloring is not None

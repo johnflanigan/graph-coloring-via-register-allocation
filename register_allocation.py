@@ -15,10 +15,11 @@ class Use:
 
 
 class Instruction:
-    def __init__(self, opcode: str, dec: List[Dec], use: List[Use]):
+    def __init__(self, opcode: str, dec: List[Dec], use: List[Use], frequency=1):
         self.opcode = opcode
         self.dec = dec
         self.use = use
+        self.frequency = frequency
 
 
 # il is an ordered sequence of instructions
@@ -33,10 +34,10 @@ graph = set()
 colors = ['red', 'blue', 'yellow', 'green']
 
 # gives estimated cost of spilling each symbolic register
-cost = None
+cost = {}
 
 # set of spilled symbolic registers
-spilled = None
+spilled = set()
 
 
 def run(input_il, input_colors):
@@ -54,6 +55,14 @@ def run(input_il, input_colors):
         color_il()
 
 
+def run():
+    if color_il() is None:
+        estimate_spill_costs()
+        decide_spills()
+        insert_spill_code()
+        return color_il()
+
+
 def color_il():
     build_graph()
     coalesce_nodes()
@@ -65,6 +74,8 @@ def color_il():
 
 
 def build_graph():
+    global graph
+    graph = set()
     liveness = None
 
     for instruction in il:
@@ -129,7 +140,7 @@ def color_graph(g, n):
     if node is None:
         return None
 
-    coloring = color_graph([(source, target) for (source, target) in g if source != node and target != node],
+    coloring = color_graph([(x, y) for (x, y) in g if x != node and y != node],
                            [n for n in n if n != node])
     if coloring is None:
         return None
@@ -148,30 +159,75 @@ def estimate_spill_costs():
 
     for instruction in il:
         if instruction.opcode == 'bb':
-            frequency = instruction.use[0].reg
+            frequency = instruction.frequency
         else:
-            # TODO this can probably be refactored into class method
-            combined = set()
+            registers = registers_in_il()
 
-            for dec in instruction.dec:
-                combined.add(dec.reg)
-            for use in instruction.use:
-                combined.add(use.reg)
-
-            for reg in combined:
-                # TODO confused about frequency
-                # paper says 'bb' has as use the estimated execution frequency of the basic block
-                # floating point number
-                # cost[reg] = cost.get(reg, 0) + frequency
-                cost[reg] = cost.get(reg, 0) + 1
+            for reg in registers:
+                cost[reg] = cost.get(reg, 0) + frequency
 
 
 def decide_spills():
-    pass
+    global spilled
+    spilled = set()
+
+    g = graph.copy()
+    n = registers_in_il()
+
+    while len(n) != 0:
+        node = next((node for node in n if len(neighbors(node, g)) < len(colors)), None)
+        if node is None:
+            node = next(x for x in n if cost[x] == min(cost.values()))
+            spilled.add(node)
+
+        g = [(x, y) for (x, y) in g if x != node and y != node]
+        n.remove(node)
 
 
 def insert_spill_code():
-    pass
+    global il
+
+    newil = []
+
+    for instruction in il:
+        if instruction.opcode == 'bb':
+            newil.append(
+                Instruction(
+                    'bb',
+                    [dec for dec in instruction.dec if dec.reg not in spilled],
+                    instruction.use.copy()
+                )
+            )
+        else:
+            before = []
+            after = []
+            newdef = []
+            newuse = []
+
+            for use in instruction.use:
+                if use.reg in spilled:
+                    newuse.append(Use(use.reg, True))
+                    before.append(Instruction(
+                        'reload',
+                        [Dec(use.reg, False)],
+                        []
+                    ))
+                else:
+                    newuse.append(Use(use.reg, use.dead))
+            for dec in instruction.dec:
+                if dec.reg in spilled:
+                    newdef.append(Dec(dec.reg, False))
+                    after.append(Instruction(
+                        'spill',
+                        [],
+                        [Use(dec.reg, True)]
+                    ))
+                else:
+                    newdef.append(Dec(dec.reg, dec.dead))
+
+            newil.extend(before + [Instruction(instruction.opcode, newdef, newuse)] + after)
+
+    il = newil
 
 
 def rewrite_il(f: dict):
