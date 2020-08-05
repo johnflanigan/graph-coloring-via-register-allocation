@@ -99,7 +99,7 @@ class Graph:
     def neighbors(self, x):
         return self._adjacency_list.get(x, [])
 
-    def plot(self, coloring):
+    def plot(self, coloring, title):
         G = nx.Graph()
 
         # Sorting to get repeatable graphs
@@ -111,6 +111,7 @@ class Graph:
             for value in self._adjacency_list[key]:
                 G.add_edge(key, value)
 
+        plt.title(title)
         nx.draw(G, pos=nx.circular_layout(G), node_color=ordered_coloring, with_labels=True, font_weight='bold')
         plt.show()
 
@@ -136,26 +137,28 @@ class Graph:
 def run(il: IntermediateLanguage, colors: List[str]) -> Tuple[Optional[Graph], Optional[Dict[str, str]]]:
     graph, coloring = color_il(il, colors)
     if coloring is None:
+        graph.plot({}, 'Initial')
         cost = estimate_spill_costs(il)
         spilled = decide_spills(il, graph, colors, cost)
         insert_spill_code(il, spilled)
         graph, coloring = color_il(il, colors)
+        graph.plot({}, 'After Spilling')
+        graph.plot(coloring, 'Colored')
 
     return graph, coloring
 
 
 def color_il(il: IntermediateLanguage, colors: List[str]) -> Tuple[Optional[Graph], Optional[Dict[str, str]]]:
     graph = build_graph(il)
+    # graph.plot({}, 'Initial')
     coalesce_nodes(il, graph)
+    # graph.plot({}, 'After Coalescing')
     coloring = color_graph(graph, il.registers(), colors)
 
     if coloring is None:
-        graph.plot({})
         return graph, None
 
-    graph.plot(coloring)
-    # TODO I think I can eliminate this call to rewrite_il
-    # rewrite_il(coloring)
+    # graph.plot(coloring, 'Colored')
     return graph, coloring
 
 
