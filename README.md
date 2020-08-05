@@ -31,8 +31,10 @@
 ## Improvements (__If above content is too sparse__)
 * Discussion of improvements introduced by Briggs et al. Implementation focused on Chaitin's algorithm so this discussion will not have examples.
 
-# Resources
+## Running locally
+* Instructions on running locally
 
+## Resources
 * Paper I am implementing
   * https://cs.gmu.edu/~white/CS640/p98-chaitin.pdf
 * Used to better understand paper 

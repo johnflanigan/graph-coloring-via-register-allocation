@@ -1,6 +1,6 @@
 import copy
 from random import choice
-from typing import List
+from typing import List, Set, Collection, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -24,6 +24,32 @@ class Instruction:
         self.dec = dec
         self.use = use
         self.frequency = frequency
+
+
+class IntermediateLanguage:
+    def __init__(self, instructions: List[Instruction]):
+        self.instructions = instructions
+
+    def overwrite_il(self, new_instructions: List[Instruction]):
+        self.instructions = new_instructions
+
+    def rewrite_il(self, f: Dict) -> None:
+        self.instructions = [Instruction(
+            instruction.opcode,
+            [Dec(f.get(dec.reg, dec.reg), dec.dead) for dec in instruction.dec],
+            [Use(f.get(use.reg, use.reg), use.dead) for use in instruction.use]
+        ) for instruction in self.instructions]
+
+    def registers(self) -> Set[str]:
+        reg = set()
+
+        for instruction in self.instructions:
+            for dec in instruction.dec:
+                reg.add(dec.reg)
+            for use in instruction.use:
+                reg.add(use.reg)
+
+        return reg
 
 
 class Graph:
@@ -51,7 +77,7 @@ class Graph:
         self._adjacency_list[y] = y_list
 
     def contains_edge(self, x, y):
-        return y in self._adjacency_list[x]
+        return y in self._adjacency_list.get(x, [])
 
     def remove_node(self, node):
         if node in self._adjacency_list:
@@ -63,7 +89,12 @@ class Graph:
     def rename_node(self, from_label, to_label):
         from_list = self._adjacency_list.pop(from_label, [])
         to_list = self._adjacency_list.get(to_label, [])
-        self._adjacency_list[to_label] = from_list + to_list
+        self._adjacency_list[to_label] = list(set(from_list + to_list))
+
+        for key in self._adjacency_list.keys():
+            self._adjacency_list[key] = list(set(
+                [to_label if value == from_label else value for value in self._adjacency_list[key]]
+            ))
 
     def neighbors(self, x):
         return self._adjacency_list.get(x, [])
@@ -86,63 +117,53 @@ class Graph:
 
 # il is an ordered sequence of instructions
 # il stands for intermediate or internal language
-il: List[Instruction] = None
+# il: List[Instruction] = None
 
 # register interference graph = set of edges
 # each edge being specified by the set of its endpoints
-graph = Graph()
+# graph = Graph()
 
 # set of available colors (machine registers)
-colors = ['red', 'blue', 'yellow', 'green']
+# colors = ['red', 'blue', 'yellow', 'green']
 
 # gives estimated cost of spilling each symbolic register
-cost = {}
+# cost = {}
 
 # set of spilled symbolic registers
-spilled = set()
+# spilled = set()
 
 
-def run(input_il, input_colors):
-    # TODO restructure so global is not necessary
-    global il
-    global colors
+def run(il: IntermediateLanguage, colors: List[str]) -> Tuple[Optional[Graph], Optional[Dict[str, str]]]:
+    graph, coloring = color_il(il, colors)
+    if coloring is None:
+        cost = estimate_spill_costs(il)
+        spilled = decide_spills(il, graph, colors, cost)
+        insert_spill_code(il, spilled)
+        graph, coloring = color_il(il, colors)
 
-    il = input_il
-    colors = input_colors
-
-    if color_il() is None:
-        estimate_spill_costs()
-        decide_spills()
-        insert_spill_code()
-        color_il()
+    return graph, coloring
 
 
-def run():
-    if color_il() is None:
-        estimate_spill_costs()
-        decide_spills()
-        insert_spill_code()
-        return color_il()
+def color_il(il: IntermediateLanguage, colors: List[str]) -> Tuple[Optional[Graph], Optional[Dict[str, str]]]:
+    graph = build_graph(il)
+    coalesce_nodes(il, graph)
+    coloring = color_graph(graph, il.registers(), colors)
 
-
-def color_il():
-    build_graph()
-    coalesce_nodes()
-    coloring = color_graph(graph, registers_in_il())
     if coloring is None:
         graph.plot({})
-        return None
+        return graph, None
+
     graph.plot(coloring)
-    rewrite_il(coloring)
-    return coloring
+    # TODO I think I can eliminate this call to rewrite_il
+    # rewrite_il(coloring)
+    return graph, coloring
 
 
-def build_graph():
-    global graph
+def build_graph(il: IntermediateLanguage) -> Graph:
     graph = Graph()
     liveness = None
 
-    for instruction in il:
+    for instruction in il.instructions:
         if instruction.opcode == 'bb':
             liveness = {}
 
@@ -161,9 +182,11 @@ def build_graph():
                 if not dec.dead:
                     liveness[dec.reg] = liveness.get(dec.reg, 0) + 1
 
+    return graph
+
 
 # TODO can I come up with a better name for this function
-def copy_check(instruction: Instruction):
+def copy_check(instruction: Instruction, graph: Graph) -> bool:
     if len(instruction.dec) == 0 or len(instruction.use) == 0:
         return False
 
@@ -175,13 +198,11 @@ def copy_check(instruction: Instruction):
             not graph.contains_edge(source, target))
 
 
-def coalesce_nodes():
-    global graph
-
+def coalesce_nodes(il: IntermediateLanguage, graph: Graph) -> None:
     modified = True
 
     while modified:
-        found = next((instruction for instruction in il if copy_check(instruction)), None)
+        found = next((instruction for instruction in il.instructions if copy_check(instruction, graph)), None)
         if found is not None:
             source = found.dec[0].reg
             target = found.use[0].reg
@@ -189,12 +210,12 @@ def coalesce_nodes():
             f = {source: target}
 
             graph.rename_node(source, target)
-            rewrite_il(f)
+            il.rewrite_il(f)
         else:
             modified = False
 
 
-def color_graph(g, n):
+def color_graph(g: Graph, n: Collection[str], colors: List[str]) -> Optional[Dict[str, str]]:
     if len(n) == 0:
         return {}
 
@@ -204,7 +225,7 @@ def color_graph(g, n):
 
     g_copy = copy.copy(g)
     g_copy.remove_node(node)
-    coloring = color_graph(g_copy, [n for n in n if n != node])
+    coloring = color_graph(g_copy, [n for n in n if n != node], colors)
     if coloring is None:
         return None
 
@@ -214,13 +235,12 @@ def color_graph(g, n):
     return coloring
 
 
-def estimate_spill_costs():
-    global cost
+def estimate_spill_costs(il: IntermediateLanguage) -> Dict[str, float]:
     cost = {}
 
     frequency = None
 
-    for instruction in il:
+    for instruction in il.instructions:
         if instruction.opcode == 'bb':
             frequency = instruction.frequency
         else:
@@ -234,13 +254,14 @@ def estimate_spill_costs():
             for reg in registers:
                 cost[reg] = cost.get(reg, 0) + frequency
 
+    return cost
 
-def decide_spills():
-    global spilled
+
+def decide_spills(il: IntermediateLanguage, graph: Graph, colors: List[str], cost: Dict[str, float]) -> Set[str]:
     spilled = set()
 
     g = copy.copy(graph)
-    n = registers_in_il()
+    n = il.registers()
 
     while len(n) != 0:
         node = next((node for node in n if len(g.neighbors(node)) < len(colors)), None)
@@ -251,13 +272,13 @@ def decide_spills():
         g.remove_node(node)
         n.remove(node)
 
+    return spilled
 
-def insert_spill_code():
-    global il
 
+def insert_spill_code(il: IntermediateLanguage, spilled: Set[str]) -> None:
     new_il = []
 
-    for instruction in il:
+    for instruction in il.instructions:
         if instruction.opcode == 'bb':
             new_il.append(
                 Instruction(
@@ -295,25 +316,4 @@ def insert_spill_code():
 
             new_il.extend(before + [Instruction(instruction.opcode, newdef, newuse)] + after)
 
-    il = new_il
-
-
-def rewrite_il(f: dict):
-    global il
-    il = [Instruction(
-        instruction.opcode,
-        [Dec(f.get(dec.reg, dec.reg), dec.dead) for dec in instruction.dec],
-        [Use(f.get(use.reg, use.reg), use.dead) for use in instruction.use]
-    ) for instruction in il]
-
-
-def registers_in_il():
-    reg = set()
-
-    for instruction in il:
-        for dec in instruction.dec:
-            reg.add(dec.reg)
-        for use in instruction.use:
-            reg.add(use.reg)
-
-    return reg
+    il.overwrite_il(new_il)

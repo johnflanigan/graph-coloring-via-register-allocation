@@ -1,9 +1,9 @@
 import register_allocation
-from register_allocation import Dec, Use, Instruction
+from register_allocation import Dec, Use, Instruction, IntermediateLanguage, Graph
 
 
 def test_build_graph():
-    register_allocation.il = [
+    il = IntermediateLanguage([
         Instruction(
             'bb',
             [Dec('a', False)],
@@ -28,19 +28,18 @@ def test_build_graph():
             [],
             [Use('a', True), Use('b', True)]
         )
-    ]
+    ])
 
-    register_allocation.build_graph()
+    graph = register_allocation.build_graph(il)
 
-    assert len(register_allocation.graph) == 4
-    assert ('a', 'b') in register_allocation.graph
-    assert ('b', 'a') in register_allocation.graph
-    assert ('a', 'c') in register_allocation.graph
-    assert ('c', 'a') in register_allocation.graph
+    assert graph.contains_edge('a', 'b')
+    assert graph.contains_edge('b', 'a')
+    assert graph.contains_edge('a', 'c')
+    assert graph.contains_edge('c', 'a')
 
 
 def test_coalesce_nodes():
-    register_allocation.il = [
+    il = IntermediateLanguage([
         Instruction(
             'bb',
             [Dec('a', False)],
@@ -70,19 +69,22 @@ def test_coalesce_nodes():
             [],
             [Use('a', True), Use('b', True)]
         )
-    ]
+    ])
 
-    register_allocation.graph = {('b', 'a'), ('d', 'a'), ('c', 'a')}
+    graph = Graph()
+    graph.add_edge('b', 'a')
+    graph.add_edge('d', 'a')
+    graph.add_edge('c', 'a')
 
-    register_allocation.coalesce_nodes()
+    register_allocation.coalesce_nodes(il, graph)
 
-    assert len(register_allocation.graph) == 2
-    assert ('b', 'a') in register_allocation.graph
-    assert ('c', 'a') in register_allocation.graph
+    assert graph.contains_edge('b', 'a')
+    assert graph.contains_edge('c', 'a')
+    assert not graph.contains_edge('d', 'a')
 
 
 def test_registers_in_il():
-    register_allocation.il = [
+    il = IntermediateLanguage([
         Instruction(
             'bb',
             [Dec('a', False)],
@@ -112,15 +114,15 @@ def test_registers_in_il():
             [],
             [Use('a', True), Use('b', True)]
         )
-    ]
+    ])
 
-    registers = register_allocation.registers_in_il()
+    registers = il.registers()
 
     assert len(registers) == 4
 
 
 def test_color_il():
-    register_allocation.il = [
+    il = IntermediateLanguage([
         Instruction(
             'bb',
             [Dec('a', False)],
@@ -145,16 +147,17 @@ def test_color_il():
             [],
             [Use('a', True), Use('b', True)]
         )
-    ]
+    ])
+    colors = ['red', 'blue']
 
-    coloring = register_allocation.color_il()
+    graph, coloring = register_allocation.color_il(il, colors)
 
     assert coloring is not None
 
 
 def test_color_il_with_multiple_bb():
     # http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
-    register_allocation.il = [
+    il = IntermediateLanguage([
         Instruction(
             'bb',
             [Dec('b', False), Dec('c', False), Dec('f', False)],
@@ -209,18 +212,17 @@ def test_color_il_with_multiple_bb():
             [Dec('b', True)],
             [Use('c', False), Use('f', False)]
         ),
-    ]
+    ])
+    colors = ['red', 'blue', 'yellow', 'green']
 
-    coloring = register_allocation.color_il()
+    graph, coloring = register_allocation.run(il, colors)
 
     assert coloring is not None
 
 
 def test_color_il_with_spills():
-    register_allocation.colors = ['red', 'blue', 'yellow']
-
     # http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
-    register_allocation.il = [
+    il = IntermediateLanguage([
         Instruction(
             'bb',
             [Dec('b', False), Dec('c', False), Dec('f', False)],
@@ -275,18 +277,17 @@ def test_color_il_with_spills():
             [Dec('b', True)],
             [Use('c', False), Use('f', False)]
         ),
-    ]
+    ])
+    colors = ['red', 'blue', 'yellow']
 
-    coloring = register_allocation.run()
+    graph, coloring = register_allocation.run(il, colors)
 
     assert coloring is not None
 
 
 def test_color_il_with_spills_and_frequency():
-    register_allocation.colors = ['lightcoral', 'lightblue', 'lightgreen']
-
     # http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
-    register_allocation.il = [
+    il = IntermediateLanguage([
         Instruction(
             'bb',
             [Dec('b', False), Dec('c', False), Dec('f', False)],
@@ -350,8 +351,9 @@ def test_color_il_with_spills_and_frequency():
             [Dec('b', True)],
             [Use('c', False), Use('f', False)]
         ),
-    ]
+    ])
+    colors = ['lightcoral', 'lightblue', 'lightgreen']
 
-    coloring = register_allocation.run()
+    graph, coloring = register_allocation.run(il, colors)
 
     assert coloring is not None
