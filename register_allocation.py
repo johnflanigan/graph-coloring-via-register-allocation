@@ -27,6 +27,10 @@ class Instruction:
 
 
 class IntermediateLanguage:
+    """
+    The intermediate language. Maintains an ordered sequence of instructions.
+    """
+
     def __init__(self, instructions: List[Instruction]):
         self.instructions = instructions
 
@@ -53,6 +57,9 @@ class IntermediateLanguage:
 
 
 class Graph:
+    """
+    The register interference graph.
+    """
 
     def __init__(self):
         self._adjacency_list = {}
@@ -64,6 +71,11 @@ class Graph:
         return new_graph
 
     def add_edge(self, x, y):
+        """
+        Add an edge to the graph.
+
+        The interference graph is undirected so add_edge('a', 'b') and add_edge('b', 'a') have the same effect.
+        """
         # Add y to x
         x_list = self._adjacency_list.get(x, [])
         if y not in x_list:
@@ -114,24 +126,6 @@ class Graph:
         plt.title(title)
         nx.draw(G, pos=nx.circular_layout(G), node_color=ordered_coloring, with_labels=True, font_weight='bold')
         plt.show()
-
-
-# il is an ordered sequence of instructions
-# il stands for intermediate or internal language
-# il: List[Instruction] = None
-
-# register interference graph = set of edges
-# each edge being specified by the set of its endpoints
-# graph = Graph()
-
-# set of available colors (machine registers)
-# colors = ['red', 'blue', 'yellow', 'green']
-
-# gives estimated cost of spilling each symbolic register
-# cost = {}
-
-# set of spilled symbolic registers
-# spilled = set()
 
 
 def run(il: IntermediateLanguage, colors: List[str]) -> Tuple[Optional[Graph], Optional[Dict[str, str]]]:
@@ -188,8 +182,7 @@ def build_graph(il: IntermediateLanguage) -> Graph:
     return graph
 
 
-# TODO can I come up with a better name for this function
-def copy_check(instruction: Instruction, graph: Graph) -> bool:
+def is_unnecessary_copy(instruction: Instruction, graph: Graph) -> bool:
     if len(instruction.dec) == 0 or len(instruction.use) == 0:
         return False
 
@@ -205,7 +198,7 @@ def coalesce_nodes(il: IntermediateLanguage, graph: Graph) -> None:
     modified = True
 
     while modified:
-        found = next((instruction for instruction in il.instructions if copy_check(instruction, graph)), None)
+        found = next((instruction for instruction in il.instructions if is_unnecessary_copy(instruction, graph)), None)
         if found is not None:
             source = found.dec[0].reg
             target = found.use[0].reg
@@ -239,6 +232,10 @@ def color_graph(g: Graph, n: Collection[str], colors: List[str]) -> Optional[Dic
 
 
 def estimate_spill_costs(il: IntermediateLanguage) -> Dict[str, float]:
+    """
+    :param il: The intermediate language to compute spill costs on.
+    :return: The estimated cost of spilling each symbolic register
+    """
     cost = {}
 
     frequency = None
@@ -261,6 +258,15 @@ def estimate_spill_costs(il: IntermediateLanguage) -> Dict[str, float]:
 
 
 def decide_spills(il: IntermediateLanguage, graph: Graph, colors: List[str], cost: Dict[str, float]) -> Set[str]:
+    """
+    Determines which symbolic registers to spill.
+
+    :param il: The intermediate language
+    :param graph: The interference graph
+    :param colors: Possible colors
+    :param cost: Estimated cost of spilling each symbolic register
+    :return: The set of spilled symbolic registers
+    """
     spilled = set()
 
     g = copy.copy(graph)
