@@ -30,7 +30,7 @@ b = c + 1
 return b * a
 ```
 
-Chaitin's algorithm is designed to take an intermediate language as input rather than high-level code. The intermediate language indicates when variables are defined, when they are are used, and whether they are dead or alive.
+Chaitin's algorithm is designed to take an intermediate language as input rather than high-level code. The intermediate language indicates when variables are defined, when they are used, and whether they are dead or alive.
 
 In this Python implementation of Chaitin's algorithm, the above code can be represented to the following intermediate language.
 
@@ -141,7 +141,7 @@ Because this example is not based on an actual program, the frequencies for each
 }
 ```
 
-After computing these costs, the algorithm determines which symbols to spill. It first finds all the symbols in the intermediate langauge and removes any symbols from the interference graph that have a degree less than the number of colors available. Once it runs out of symbols to remove, it chooses the least costly symbol, adds it to the spill list, and removes it from the graph. This process continues until all symbols have been processed.
+After computing these costs, the algorithm determines which symbols to spill. It first finds all the symbols in the intermediate language and removes any symbols from the interference graph that have a degree less than the number of colors available. Once it runs out of symbols to remove, it chooses the least costly symbol, adds it to the spill list, and removes it from the graph. This process continues until all symbols have been processed.
 
 _a_ and _c_ are the two least costly variables in the example but _a_ has a degree less than the number of colors, so spilling it is not necessary. Therefore, _c_ is spilled.
 
@@ -174,7 +174,7 @@ f := { [ source, target ] } ;
 graph := { { f(x) ? x : element of edge } : edge element of graph } ;
 ```
 
-is indicating that any edge with with an endpoint of `source` should be changed to `target`. Other places in the algorithm use `x` and `y` to represent distinct endpoints so when I initially implemented this step, I only looked at the first endpoint on an edge. Fortunately, I found the paper that introduced SETL which was a useful resource whenever I was confused about something in the language [2].
+is indicating that any edge with an endpoint of `source` should be changed to `target`. Other places in the algorithm use `x` and `y` to represent distinct endpoints so when I initially implemented this step, I only looked at the first endpoint on an edge. Fortunately, I found the paper that introduced SETL which was a useful resource whenever I was confused about something in the language [2].
 
 Another challenge is that there are places in the algorithm where a variable is used without being initialized and without any indication of what it represents. For example, during the insert spill code step, `newat` appears for the first time in the statement `newuse +:= [ [ ( newreg := newat ), true ] ] ;`. If `newat` is replaced with the name of the old register, the algorithm produces expected results, but if I was writing production quality code, I would want to confirm what this variable represents.
 
@@ -184,10 +184,11 @@ Finally, the third challenge of this algorithm was that it uses global variables
 
 1. G. Chaitin. 2004. Register allocation and spilling via graph coloring. SIGPLAN Not. 39, 4 (April 2004), 66–74. DOI:https://doi.org/10.1145/989393.989403
     1. Paper also available here: https://cs.gmu.edu/~white/CS640/p98-chaitin.pdf
-2. K. Kennedy, J. Schwartz. 1975. An introduction to the set theoretical language SETL. Computers & Mathematics with Applications. Volume 1, Issue 1,, 97-119. DOI:https://doi.org/10.1016/0898-1221(75)90011-5.
-3. V Vene. 2010. Register allocation. http://kodu.ut.ee/~varmo/TM2010/slides/tm-reg.pdf
+2. K. Kennedy, J. Schwartz. 1975. An introduction to the set theoretical language SETL. Computers & Mathematics with Applications. Volume 1, Issue 1, 97-119. DOI:https://doi.org/10.1016/0898-1221(75)90011-5.
+3. V. Vene. 2010. Register allocation. http://kodu.ut.ee/~varmo/TM2010/slides/tm-reg.pdf
 4. M. Perkowski. 2001. Register allocation (via graph coloring). http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
 
 ## Packages used
-* [networkx](https://networkx.github.io/)
+
 * [matplotlib](https://matplotlib.org/)
+* [networkx](https://networkx.github.io/)
