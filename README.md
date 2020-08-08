@@ -13,7 +13,7 @@ In the paper Register Allocation and Spilling via Graph Coloring [1], Chaitin pr
 
 ## Basic Example
 
-First, we will discuss a simple example that uses few variables and registers. Below is a simple section of code written in a C-like language [3]. On the left is the code and on the right is the live set at each step of the code.
+First, we will discuss a simple example that uses few variables and registers. Below is a simple section of code, on the left is the code and on the right is the live set at each step of the code [3].
 
 At the beginning of the code, a variable _a_ is alive. Then _a_ is used to compute a new variable, _b_, which enters the live set. _b_ is used to compute another new variable, _c_, which also enters the live set. Because this is the last time this instance of _b_ is used, _b_ exits the live set. Then a new instance of _b_ is created using _c_. _c_ is not used again so it exits the live set. At the end we are left with _a_ and _b_ in the live set.
 
@@ -61,7 +61,7 @@ IntermediateLanguage([
 ])
 ```
 
-The code and intermediate language can be represented by the following graph.
+The code and intermediate language can be represented by the following graph. The graph has an edge connecting _a_ to _b_ and _a_ to _c_ which is expected based on the live set.
 
 ![Basic Example - Initial Graph](images/basic-example-initial.png)
 
@@ -70,8 +70,10 @@ This graph can easily be 2-colored, indicating two registers are required to exe
 ![Basic Example - Colored Graph](images/basic-example-colored.png)
 
 ## Subsumption Example
-* Discussion of subsumption.
-* Example where unnecessary copy operations are eliminated.
+
+After building the interference graph, the next stop of the algorithm is to eliminate unnecessary register copy operations. This is done by coalescing or combining the nodes which are the source and targets of a copy operation.
+
+The previous example can be modified to add a new variable, _d_, which is a copy of _c_. _d_ is then used in place of _c_ in the remainder of the example. When the initial interference graph is built, it shows that there is interference between _a_ and _b_, _a_ and _c_, and _a_ and _d_. 
 
 ```
                 {a}
@@ -88,16 +90,23 @@ return b * a
 
 ![Subsumption Example - Initial](images/subsumption-example-initial.png)
 
+However, in the coalescing phase, the algorithm identifies the copy from _c_ to _d_ and replaces references of _d_ with _c_. The graph now matches the previous example which has already been shown to be 2-colorable by the algorithm.
+
 ![Subsumption Example - After Coalescing](images/subsumption-example-after-coalescing.png)
 
 ![Subsumption Example - Colored](images/subsumption-example-colored.png)
 
-## Multiple Building Blocks
-* Discussion of larger example with multiple building blocks.
+## Multiple Basic Blocks
 
-![Multiple Building Blocks Example - Initial](images/multiple-building-blocks-example-initial.png)
+Chaitin's register allocation example can be applied to programs with multiple basic blocks as well. Although this example is larger and more complex than the previous examples, the basic steps still apply [4]. The algorithm computes the interference graph, checks for unnecessary copy operations, and colors the graph.
 
-![Multiple Building Blocks Example - Colored](images/multiple-building-blocks-example-colored.png)
+![Multiple Basic Blocks Example - Code](images/multiple-basic-blocks-example-code.png)
+
+![Multiple Basic Blocks Example - Initial](images/multiple-basic-blocks-example-initial.png)
+
+One of the inputs to the algorithm are the colors (registers) available, so as long as 4 colors are available to color this graph, no additional steps are necessary as the graph is 4-colorable.
+
+![Multiple Basic Blocks Example - Colored](images/multiple-basic-blocks-example-colored.png)
 
 ## Spilling
 * Take same example as in multiple building blocks, but reduce available colors to force spilling registers.
