@@ -102,6 +102,8 @@ Chaitin's register allocation example can be applied to programs with multiple b
 
 ![Multiple Basic Blocks Example - Code](images/multiple-basic-blocks-example-code.png)
 
+The above diagram was taken from M. Perkowski's slides [4].
+
 ![Multiple Basic Blocks Example - Initial](images/multiple-basic-blocks-example-initial.png)
 
 One of the inputs to the algorithm are the colors (registers) available, so as long as 4 colors are available to color this graph, no additional steps are necessary as the graph is 4-colorable.
@@ -160,15 +162,13 @@ As before, after spilling _f_, the graph is 3-colorable.
 ![Frequency Example - Colored](images/frequency-example-colored.png)
 
 ## Resources
-* Chaitin paper
-  * https://cs.gmu.edu/~white/CS640/p98-chaitin.pdf
-* Slides on Chaitin's algorithm
-  * http://kodu.ut.ee/~varmo/TM2010/slides/tm-reg.pdf
-* More slides on Chaitin's algorithm, contains example with multiple building blocks
-  * http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
-* Set Theoretic Language (SETL) introduction
-  * https://www.sciencedirect.com/science/article/pii/0898122175900115
-* Briggs et al. paper
-  * http://www.cs.utexas.edu/users/mckinley/380C/lecs/briggs-thesis-1992.pdf
-* Python graph drawing package
-  * https://networkx.github.io/
+
+1. G. Chaitin. 2004. Register allocation and spilling via graph coloring. SIGPLAN Not. 39, 4 (April 2004), 66–74. DOI:https://doi.org/10.1145/989393.989403
+    1. Paper also available here: https://cs.gmu.edu/~white/CS640/p98-chaitin.pdf
+2. K. Kennedy, J. Schwartz. 1975. An introduction to the set theoretical language SETL. Computers & Mathematics with Applications. Volume 1, Issue 1,, 97-119. DOI:https://doi.org/10.1016/0898-1221(75)90011-5.
+3. V Vene. 2010. Register allocation. http://kodu.ut.ee/~varmo/TM2010/slides/tm-reg.pdf
+4. M. Perkowski. 2001. Register allocation (via graph coloring). http://web.cecs.pdx.edu/~mperkows/temp/register-allocation.pdf
+
+## Packages used
+* [networkx](https://networkx.github.io/)
+* [matplotlib](https://matplotlib.org/)
