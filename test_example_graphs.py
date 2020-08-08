@@ -168,7 +168,6 @@ def test_spill_example():
             [Use('d', False), Use('f', False)]
         ),
 
-        # Using negative frequency to force f to be spilled
         Instruction(
             'bb',
             [Dec('c', False), Dec('e', False)],
@@ -195,7 +194,7 @@ def test_spill_example():
         Instruction(
             'e := e - 1',
             [Dec('e', False)],
-            [Use('e', False)]
+            [Use('e', True)]
         ),
 
         Instruction(
@@ -217,3 +216,75 @@ def test_spill_example():
     assert graph is not None
     assert coloring is not None
 
+
+def test_frequency_example():
+    il = IntermediateLanguage([
+        Instruction(
+            'bb',
+            [Dec('b', False), Dec('c', False), Dec('f', False)],
+            [],
+            frequency=1
+        ),
+        Instruction(
+            'a := b + c',
+            [Dec('a', False)],
+            [Use('b', True), Use('c', False)]
+        ),
+        Instruction(
+            'd := a',
+            [Dec('d', False)],
+            [Use('a', True)]
+        ),
+        Instruction(
+            'e := d + f',
+            [Dec('e', False)],
+            [Use('d', False), Use('f', False)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('e', False)],
+            [],
+            frequency=-0.1
+        ),
+        Instruction(
+            'f := 2 + e',
+            [Dec('f', False)],
+            [Use('e', True)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('d', False), Dec('e', False), Dec('f', False)],
+            [],
+            frequency=0.9
+        ),
+        Instruction(
+            'b := d + e',
+            [Dec('b', False)],
+            [Use('d', True), Use('e', False)]
+        ),
+        Instruction(
+            'e := e - 1',
+            [Dec('e', False)],
+            [Use('e', True)]
+        ),
+
+        Instruction(
+            'bb',
+            [Dec('c', False), Dec('f', False)],
+            [],
+            frequency=1
+        ),
+        Instruction(
+            'b := f + c',
+            [Dec('b', True)],
+            [Use('c', False), Use('f', False)]
+        ),
+    ])
+    colors = ['tab:red', 'tab:blue', 'tab:green']
+
+    graph, coloring = register_allocation.run(il, colors)
+
+    assert graph is not None
+    assert coloring is not None

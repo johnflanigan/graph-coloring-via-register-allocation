@@ -109,25 +109,55 @@ One of the inputs to the algorithm are the colors (registers) available, so as l
 ![Multiple Basic Blocks Example - Colored](images/multiple-basic-blocks-example-colored.png)
 
 ## Spilling
-* Take same example as in multiple building blocks, but reduce available colors to force spilling registers.
-* Discussion of spilling.
+
+The previous example did not require any additional work beyond computing the interference graph, checking for unnecessary copy operations, and coloring the graph because enough colors were available to color the graph without any changes. But what happens if only three colors are available instead of four?
+
+The graph coloring algorithm will not be able find a way to 3-color the graph and will return an undefined result. At this point the algorithm will have to spill at least one variable to main memory. Determining which variable to spill is a multi-step process.
+
+First, the algorithm computes a cost estimate of each variable. This cost estimate is equal to "the number of definition points plus the number of uses of that computation, where each definition and use is weighted by its estimated execution frequency." The frequency is provided as an input into the algorithm for each basic block.
+
+Then, the algorithm will pick which variables to spill, factoring in their cost, and insert the instructions to spill the chosen variables into the intermediate language. The algorithm will then rebuild the interference graph, check for unnecessary copy operations, and attempt to color the graph again. Typically only one round of spilling is required, but Chaitin mentions that "it is sometimes necessary to loop through this process yet again, adding a little mor spill code, until a 32-coloring is finally obtained."
+
+Below is the interference graph of the multiple building block example.
 
 ![Spilling Example - Initial](images/spilling-example-initial.png)
 
+If we change the number of available registers from four to three, the graph is no longer colorable and at least one spill will be required.
+
+Arbitrarily assigning the top basic block a frequency of 1, the left basic block a frequency of 0.75, the right basic block a frequency of 0.25, and the bottom basic block a frequency of 1, we get the following costs:
+
+```
+{
+    'a': 2,
+    'b': 2.25,
+    'c': 2,
+    'd': 2.25,
+    'e': 2.25,
+    'f': 2.75
+}
+```
+
+After computing these costs, the algorithm determines which symbols to spill. It first finds all symbols in the intermediate langauge and removes any symbols from the interference graph that have a degree less than the number of colors available. Once it runs out of symbols to remove, it chooses the least costly symbol, adds it to the spill list, and removes it from the graph. This process continues until all symbols have been processed.
+
+_a_ and _c_ are the two least costly variables in the example but _a_ has a degree less than the number of colors, so spilling it is not necessary. Therefore, _c_ is spilled.
+
+Below is the interference graph after spilling _c_.
+
 ![Spilling Example - After Spilling](images/spilling-example-after-spilling.png)
+
+Now after spilling _c_, the graph is 3-colorable.
 
 ![Spilling Example - Colored](images/spilling-example-colored.png)
 
 ### Frequency Optimization
-* Explain motivation of frequency optimization to selecting which symbol to spill.
-* Discussion of spilling algorithm.
-* Simple example demonstrating how building block frequencies change which symbol is spilled.
 
-## Improvements (__If above content is too sparse__)
-* Discussion of improvements introduced by Briggs et al. Implementation focused on Chaitin's algorithm so this discussion will not have examples.
+If we adjust the frequencies so that _f_ is the least costly symbol, _f_ is the symbol the algorithm decides to spill.
 
-## Running locally
-* Instructions on running locally
+![Frequency Example - After Spilling](images/frequency-example-after-spilling.png)
+
+As before, after spilling _f_, the graph is 3-colorable.
+
+![Frequency Example - Colored](images/frequency-example-colored.png)
 
 ## Resources
 * Chaitin paper
