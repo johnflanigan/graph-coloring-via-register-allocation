@@ -144,7 +144,7 @@ def run(il: IntermediateLanguage, colors: List[str]) -> Tuple[Optional[Graph], O
 
 def color_il(il: IntermediateLanguage, colors: List[str]) -> Tuple[Optional[Graph], Optional[Dict[str, str]]]:
     graph = build_graph(il)
-    # graph.plot({}, 'Initial')
+    graph.plot({}, 'Initial')
     coalesce_nodes(il, graph)
     # graph.plot({}, 'After Coalescing')
     coloring = color_graph(graph, il.registers(), colors)

@@ -158,7 +158,7 @@ def test_spill_example():
             [Use('b', True), Use('c', False)]
         ),
         Instruction(
-            'd := a',
+            'd := -a',
             [Dec('d', False)],
             [Use('a', True)]
         ),
